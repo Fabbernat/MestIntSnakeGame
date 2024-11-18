@@ -18,6 +18,7 @@ public class Agent extends SnakePlayer {
      * Konstruktor, amely inicializalja az Agent objektumot a megadott jatekkal.
      * @param gameState Az aktualis jatekter allapota.
      * @param color A kigyo szine.
+     * @param random random szam generator
      */
     public Agent(SnakeGameState gameState, int color, Random random) {
         super(gameState, color, random);
@@ -31,18 +32,22 @@ public class Agent extends SnakePlayer {
     @Override
     public Direction getAction(long remainingTime) {
         Cell food = null;
-        for (int i = 0; i < gameState.board.length; i++) {
-            for (int j = 0; j < gameState.board[i].length; j++) {
-                if (gameState.board[i][j] == SnakeGame.FOOD) {
-                    food = new Cell(i, j);
+        for (int row = 0; row < gameState.board.length; row++) {
+            for (int column = 0; column < gameState.board[row].length; column++) {
+                if (gameState.board[row][column] == SnakeGame.FOOD) {
+                    food = new Cell(row, column);
                 }
             }
         }
-        // find closest cell to the food of the head's neighbors
+        // find the closest cell to the food of the head's neighbors
         Cell closest = food;
         Cell head = gameState.snake.peekFirst();
         int distance = gameState.maxDistance();
-        assert head != null;
+        // Check if gameState or snake is null
+        if (head == null) {
+            // visszater alapertelmezett modon fel irannyal, ha headPostiton null
+            return new Direction(-1, 0); // Fel irany
+        }
         for (Cell c : head.neighbors()) {
             if (gameState.isOnBoard(c) && gameState.getValueAt(c) != SnakeGame.SNAKE && c.distance(food) < distance) {
                 distance = c.distance(food);
@@ -50,45 +55,41 @@ public class Agent extends SnakePlayer {
             }
         }
 
-        /*// Check if gameState or snake is null
-        if (gameState == null || gameState.snake == null || gameState.snake.peekFirst() == null) {
-            // visszater alapertelmezett modon fel irannyal, ha headPostiton null
-            return new Direction(-1, 0); // Fel irany
-        }
+        
         // Snake fej pozicioja
         var headPosition = gameState.snake.peekFirst();
         if (headPosition == null) {
             // visszater alapertelmezett modon fel irannyal, ha headPostiton null
             return new Direction(-1, 0);
         }
-        int headX = headPosition.i;
-        int headY = headPosition.j;
+        int headRow = headPosition.i;
+        int headColumn = headPosition.j;
 
         // etel legkozelebbi pozicioja
-        int targetX = -1;
-        int targetY = -1;
-        for (int y = 0; y < gameState.board.length; y++) {
-            for (int x = 0; x < gameState.board.length; x++) {
-                if (gameState.board[y][x] == SnakeGame.FOOD) {
-                    targetX = x;
-                    targetY = y;
+        int targetRow = -1;
+        int targetColumn = -1;
+        for (int column = 0; column < gameState.board.length; column++) {
+            for (int row = 0; row < gameState.board.length; row++) {
+                if (gameState.board[column][row] == SnakeGame.FOOD) {
+                    targetRow = row;
+                    targetColumn = column;
                     break;
                 }
             }
         }
 
-        // Ha megtalaljuk az etelt, a megfelelo iranyban mozgunk fele
-        if (targetX != -1 && targetY != -1) {
-            if (!isObstacleBetween(headX, headY, targetX, targetY)) {
-            if (targetX < headX && isSafeMove(new Direction(0, -1))) return new Direction(0, -1); // Bal
-            else if (targetX > headX && isSafeMove(new Direction(0, 1))) return new Direction(0, 1); // Jobb
-            else if (targetY < headY && isSafeMove(new Direction(-1, 0))) return new Direction(-1, 0); // Fel
-            else if (targetY > headY && isSafeMove(new Direction(1, 0))) return new Direction(1, 0); // Le
+        // Ha megtalaljuk az etelt, a megfelelo iranyba elmozdulunk fele
+        if (targetRow != -1 && targetColumn != -1) {
+            if (!isObstacleBetween(headRow, headColumn, targetRow, targetColumn)) {
+            if (targetRow < headRow && isSafeMove(new Direction(0, -1))) return new Direction(0, -1); // Bal
+            else if (targetRow > headRow && isSafeMove(new Direction(0, 1))) return new Direction(0, 1); // Jobb
+            else if (targetColumn < headColumn && isSafeMove(new Direction(-1, 0))) return new Direction(-1, 0); // Fel
+            else if (targetColumn > headColumn && isSafeMove(new Direction(1, 0))) return new Direction(1, 0); // Le
         } else {
             // Ha az etel es a fej kozott a test van, keresni kell egy biztonsagos utat
-            return findSafePathToFood(headX, headY, targetX, targetY);
+            return findSafePathToFood(headRow, headColumn, targetRow, targetColumn);
         }
-    }*/
+    }
 
         // Alapertelmezett a legkozelebbi fele, ha nincs etel vagy nincs biztonsagos ut
         return head.directionTo(closest);
@@ -114,24 +115,24 @@ public class Agent extends SnakePlayer {
     /**
      * Ellenorzi, hogy van-e akadaly (a kigyo teste) az etel es a fej kozott.
      */
-    private boolean isObstacleBetween(int headX, int headY, int targetX, int targetY) {
+    private boolean isObstacleBetween(int headRow, int headColumn, int targetRow, int targetColumn) {
         // Egy egyszeru ellenorzes arra, hogy van-e akadaly a ket pont kozott
         // Peldaul, ha a target es a head kozott van kigyo test, akkor akadaly van
-        if (targetX == headX) {
+        if (targetRow == headRow) {
             // Ha ugyanazon az oszlopon van, akkor vertikalisan keresunk
-            int minY = Math.min(headY, targetY);
-            int maxY = Math.max(headY, targetY);
-            for (int y = minY + 1; y < maxY; y++) {
-                if (gameState.board[y][headX] == SnakeGame.SNAKE) {
+            int minY = Math.min(headColumn, targetColumn);
+            int maxY = Math.max(headColumn, targetColumn);
+            for (int column = minY + 1; column < maxY; column++) {
+                if (gameState.board[column][headRow] == SnakeGame.SNAKE) {
                     return true;
                 }
             }
-        } else if (targetY == headY) {
+        } else if (targetColumn == headColumn) {
             // Ha ugyanazon a sorban van, akkor horizontalisan keresunk
-            int minX = Math.min(headX, targetX);
-            int maxX = Math.max(headX, targetX);
-            for (int x = minX + 1; x < maxX; x++) {
-                if (gameState.board[headY][x] == SnakeGame.SNAKE) {
+            int minX = Math.min(headRow, targetRow);
+            int maxX = Math.max(headRow, targetRow);
+            for (int row = minX + 1; row < maxX; row++) {
+                if (gameState.board[headColumn][row] == SnakeGame.SNAKE) {
                     return true;
                 }
             }
@@ -139,19 +140,19 @@ public class Agent extends SnakePlayer {
         return false;
     }
 
-    private Direction findSafePathToFood(int headX, int headY, int targetX, int targetY) {
+    private Direction findSafePathToFood(int headRow, int headColumn, int targetRow, int targetColumn) {
         // List of possible directions to move (Up, Down, Left, Right)
         Direction[] directions = { new Direction(0, -1), new Direction(0, 1), new Direction(-1, 0), new Direction(1, 0) };
 
         // First, attempt to find the safest and closest direction
         for (Direction dir : directions) {
-            int newX = headX + dir.i;
-            int newY = headY + dir.j;
+            int newX = headRow + dir.i;
+            int newY = headColumn + dir.j;
 
             // Check if the new position is within bounds and doesn't collide with the snake's body
             if (isSafeMove(dir)) {
                 // If the new direction brings us closer to the target food, prioritize it
-                if (isCloserToFood(newX, newY, targetX, targetY, headX, headY)) {
+                if (isCloserToFood(newX, newY, targetRow, targetColumn, headRow, headColumn)) {
                     return dir;
                 }
             }
@@ -171,18 +172,26 @@ public class Agent extends SnakePlayer {
      * Helper method to check if the new position brings us closer to the food.
      * @param newX The x-coordinate of the new position.
      * @param newY The y-coordinate of the new position.
-     * @param targetX The x-coordinate of the food.
-     * @param targetY The y-coordinate of the food.
-     * @param headX The current x-coordinate of the snake's head.
-     * @param headY The current y-coordinate of the snake's head.
+     * @param targetRow The x-coordinate of the food.
+     * @param targetColumn The y-coordinate of the food.
+     * @param headRow The current x-coordinate of the snake's head.
+     * @param headColumn The current y-coordinate of the snake's head.
      * @return True if the new position brings us closer to the food, false otherwise.
      */
-    private boolean isCloserToFood(int newX, int newY, int targetX, int targetY, int headX, int headY) {
+    private boolean isCloserToFood(int newX, int newY, int targetRow, int targetColumn, int headRow, int headColumn) {
         // Calculate the Manhattan distance (absolute difference in x and y) from the food to the current head
-        int currentDistance = Math.abs(headX - targetX) + Math.abs(headY - targetY);
-        int newDistance = Math.abs(newX - targetX) + Math.abs(newY - targetY);
+        int currentDistance = Math.abs(headRow - targetRow) + Math.abs(headColumn - targetColumn);
+        int newDistance = Math.abs(newX - targetRow) + Math.abs(newY - targetColumn);
 
         // Return true if the new position is closer to the food
         return newDistance < currentDistance;
+    }
+}
+
+
+// teszt
+class Main{
+    public static void main(String[] args) {
+        Agent agent = new Agent();
     }
 }
