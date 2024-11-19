@@ -45,8 +45,8 @@ public class Agent extends SnakePlayer {
         int distance = gameState.maxDistance();
         // Check if gameState or snake is null
         if (head == null) {
-            // visszater alapertelmezett modon fel irannyal, ha headPostiton null
-            return new Direction(-1, 0); // Fel irany
+            // visszater alapertelmezett modon bal irannyal, ha headPostiton null
+            return new Direction(0, -1); // Bal irany
         }
         for (Cell c : head.neighbors()) {
             if (gameState.isOnBoard(c) && gameState.getValueAt(c) != SnakeGame.SNAKE && c.distance(food) < distance) {
@@ -59,8 +59,8 @@ public class Agent extends SnakePlayer {
         // Snake fej pozicioja
         var headPosition = gameState.snake.peekFirst();
         if (headPosition == null) {
-            // visszater alapertelmezett modon fel irannyal, ha headPostiton null
-            return new Direction(-1, 0);
+            // visszater alapertelmezett modon bal irannyal, ha headPostiton null
+            return new Direction(0, -1);
         }
         int headRow = headPosition.i;
         int headColumn = headPosition.j;
@@ -189,9 +189,3 @@ public class Agent extends SnakePlayer {
 }
 
 
-// teszt
-class Main{
-    public static void main(String[] args) {
-        Agent agent = new Agent();
-    }
-}
