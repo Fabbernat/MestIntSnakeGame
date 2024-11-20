@@ -32,16 +32,15 @@ public class AgentDevBranch extends SnakePlayer {
     @Override
     public Direction getAction(long remainingTime) {
         Cell food = getFoodCell();
+        Cell closest = food;
         Cell head = gameState.snake.peekFirst();
         int distance = gameState.maxDistance();
         // Check if gameState or snake is null
-        if (head == null) {
-            // visszater alapertelmezett modon bal irannyal, ha headPostiton null
-            return new Direction(0, -1); // Bal irany
-        }
+        assert (head != null);
         for (Cell c : head.neighbors()) {
             if (gameState.isOnBoard(c) && gameState.getValueAt(c) != SnakeGame.SNAKE && c.distance(food) < distance) {
                 distance = c.distance(food);
+                closest = c;
             }
         }
 
@@ -57,7 +56,7 @@ public class AgentDevBranch extends SnakePlayer {
         } else {
             // If A* doesn't find a path, fall back to the default behavior
             distance = gameState.maxDistance();
-            Cell closest = food;
+            closest = food;
             for (Cell c : head.neighbors()) {
                 if (gameState.isOnBoard(c) && gameState.getValueAt(c) != SnakeGame.SNAKE && c.distance(food) < distance) {
                     distance = c.distance(food);
@@ -88,6 +87,7 @@ class AStarSearch {
 
     private SnakeGameState gameState;
     private Set<List<Cell>> visitedPaths; // To track visited paths and avoid cycles
+    private static final int MAX_SEARCH_DEPTH = 15;
 
     public AStarSearch(SnakeGameState gameState) {
         this.gameState = gameState;
@@ -168,71 +168,46 @@ class AStarSearch {
         SnakeGameState tempState = new SnakeGameState(gameState); // Create a copy of the game state
         tempState.snake.addFirst(nextCell); // Simulate the move
         // Check if the board is still connected after the move (implementation not provided)
-        return !isConnected(tempState);
+        if (isSelfCut(node, nextCell)) {
+            return true;
+        }
+
+        return false;
     }
 
-    private boolean isConnected(SnakeGameState gameState) {
-        // 1. Create a graph representation of the board
-        Map<Cell, Set<Cell>> graph = createGraph(gameState);
+    private boolean isSelfCut(Node node, Cell nextCell) {
+        // Simulate the move
+        SnakeGameState tempState = new SnakeGameState(gameState);
+        tempState.snake.addFirst(nextCell);
 
-        // 2. Start a Depth-First Search (DFS) or Breadth-First Search (BFS) from any empty cell
-        Set<Cell> visited = new HashSet<>();
-        Cell startCell = findEmptyCell(gameState);
-        if (startCell == null) {
-            return false; // No empty cells, board is not connected
-        }
-        dfs(graph, visited, startCell); // Or bfs(graph, visited, startCell);
+        // Check if the head is trapped in a loop
+        return isTrapped(tempState, nextCell);
+    }
 
-        // 3. Check if all empty cells have been visited
-        for (int i = 0; i < gameState.board.length; i++) {
-            for (int j = 0; j < gameState.board[i].length; j++) {
-                Cell cell = new Cell(i, j);
-                if (gameState.getValueAt(cell) == SnakeGame.EMPTY && !visited.contains(cell)) {
-                    return false; // Not all empty cells are reachable
-                }
+    private boolean isTrapped(SnakeGameState tempState, Cell head) {
+        // 1. Mark all cells as unvisited
+        boolean[][] visited = new boolean[tempState.board.length][tempState.board[0].length];
+
+        // 2. Start a DFS or BFS from the head
+        dfs(tempState, visited, head); // Or bfs(tempState, visited, head);
+
+        // 3. Check if any empty cell adjacent to the head is unvisited
+        for (Direction dir : new Direction[]{new Direction(0, -1), new Direction(0, 1), new Direction(-1, 0), new Direction(1, 0)}) {
+            Cell neighbor = new Cell(head.i + dir.i, head.j + dir.j);
+            if (tempState.isOnBoard(neighbor) && tempState.getValueAt(neighbor) == SnakeGame.EMPTY && !visited[neighbor.i][neighbor.j]) {
+                return false; // Head is not trapped
             }
         }
 
-        return true; // All empty cells are connected
+        return true; // Head is trapped
     }
 
-    private Map<Cell, Set<Cell>> createGraph(SnakeGameState gameState) {
-        Map<Cell, Set<Cell>> graph = new HashMap<>();
-        for (int i = 0; i < gameState.board.length; i++) {
-            for (int j = 0; j < gameState.board[i].length; j++) {
-                Cell cell = new Cell(i, j);
-                if (gameState.getValueAt(cell) == SnakeGame.EMPTY) {
-                    Set<Cell> neighbors = new HashSet<>();
-                    for (Direction dir : new Direction[]{new Direction(0, -1), new Direction(0, 1), new Direction(-1, 0), new Direction(1, 0)}) {
-                        Cell neighbor = new Cell(cell.i + dir.i, cell.j + dir.j);
-                        if (gameState.isOnBoard(neighbor) && gameState.getValueAt(neighbor) == SnakeGame.EMPTY) {
-                            neighbors.add(neighbor);
-                        }
-                    }
-                    graph.put(cell, neighbors);
-                }
-            }
-        }
-        return graph;
-    }
-
-    private Cell findEmptyCell(SnakeGameState gameState) {
-        for (int i = 0; i < gameState.board.length; i++) {
-            for (int j = 0; j < gameState.board[i].length; j++) {
-                Cell cell = new Cell(i, j);
-                if (gameState.getValueAt(cell) == SnakeGame.EMPTY) {
-                    return cell;
-                }
-            }
-        }
-        return null;
-    }
-
-    private void dfs(Map<Cell, Set<Cell>> graph, Set<Cell> visited, Cell cell) {
-        visited.add(cell);
-        for (Cell neighbor : graph.getOrDefault(cell, Collections.emptySet())) {
-            if (!visited.contains(neighbor)) {
-                dfs(graph, visited, neighbor);
+    private void dfs(SnakeGameState tempState, boolean[][] visited, Cell cell) {
+        visited[cell.i][cell.j] = true;
+        for (Direction dir : new Direction[]{new Direction(0, -1), new Direction(0, 1), new Direction(-1, 0), new Direction(1, 0)}) {
+            Cell neighbor = new Cell(cell.i + dir.i, cell.j + dir.j);
+            if (tempState.isOnBoard(neighbor) && tempState.getValueAt(neighbor) == SnakeGame.EMPTY && !visited[neighbor.i][neighbor.j]) {
+                dfs(tempState, visited, neighbor);
             }
         }
     }
@@ -272,7 +247,39 @@ class AStarSearch {
         // Add a bonus for moves that get closer to completing a Hamiltonian cycle
         int hamiltonianBonus = hamiltonianBonus(a, b);
 
-        return manhattanDistance - hamiltonianBonus;
+        int untrappingBonus = untrappingBonus(a, b);
+
+        return manhattanDistance - hamiltonianBonus + untrappingBonus;
+    }
+
+    private int untrappingBonus(Cell current, Cell next) {
+        // Calculate bonus based on how much the move increases
+        // the open space around the snake's head.
+        // One simple approach is to count the number of empty cells
+        // adjacent to the head after the move.
+
+        int openSpaceCount = 0;
+        SnakeGameState tempState = new SnakeGameState(gameState);
+        tempState.snake.addFirst(next); // Simulate the move
+
+        Set<Cell> visited = new HashSet<>();
+        Queue<Cell> queue = new LinkedList<>();
+        queue.offer(next);
+        visited.add(next);
+
+        while (!queue.isEmpty() && openSpaceCount < MAX_SEARCH_DEPTH) {
+            Cell cell = queue.poll();
+            for (Direction dir : new Direction[]{new Direction(0, -1), new Direction(0, 1), new Direction(-1, 0), new Direction(1, 0)}) {
+                Cell neighbor = new Cell(cell.i + dir.i, cell.j + dir.j);
+                if (tempState.isOnBoard(neighbor) && tempState.getValueAt(neighbor) == SnakeGame.EMPTY && !visited.contains(neighbor)) {
+                    openSpaceCount++;
+                    visited.add(neighbor);
+                    queue.offer(neighbor);
+                }
+            }
+        }
+
+        return openSpaceCount;
     }
 
     private int hamiltonianBonus(Cell current, Cell next) {
@@ -301,3 +308,5 @@ class AStarSearch {
         }
     }
 }
+
+// game.snake.players.GreedyPlayer
