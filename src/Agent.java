@@ -35,38 +35,30 @@ public class Agent extends SnakePlayer {
     @Override
     public Direction getAction(long remainingTime) {
         Cell food = getFoodCell();
-        Cell closest = food;
         Cell head = gameState.snake.peekFirst();
-        int distance = gameState.maxDistance();
-        // Check if gameState or snake is null
-        assert (head != null);
-        for (Cell c : head.neighbors()) {
-            if (gameState.isOnBoard(c) && gameState.getValueAt(c) != SnakeGame.SNAKE && c.distance(food) < distance) {
-                distance = c.distance(food);
-                closest = c;
-            }
+
+        if (head == null || food == null) {
+            return new Direction(0, -1); // Or another default direction
         }
 
-
-        // Snake fej pozicioja
+        // A* kereso algo
         AStarSearch search = new AStarSearch(gameState);
-        List<Cell> direction = search.findPath(head, food);
+        List<Cell> path = search.findPath(head, food);
 
-        if (direction != null) {
-            // the app never gets here
+        if (path != null && path.size() > 1) {
+            // Get the next cell from the path
+            Cell nextCell = path.get(1);
+            return head.directionTo(nextCell);
         } else {
-            // If A* doesn't find a path, fall back to the default behavior
-            distance = gameState.maxDistance();
-            closest = food;
-            for (Cell c : head.neighbors()) {
-                if (gameState.isOnBoard(c) && gameState.getValueAt(c) != SnakeGame.SNAKE && c.distance(food) < distance) {
-                    distance = c.distance(food);
-                    closest = c;
+            // Fallback: If A* fails, try to find a safe direction
+            for (Cell neighbor : head.neighbors()) {
+                if (gameState.isOnBoard(neighbor) && gameState.getValueAt(neighbor) != SnakeGame.SNAKE) {
+                    return head.directionTo(neighbor);
                 }
             }
-            return head.directionTo(closest);
+            // If no safe direction is found, return a default direction
+            return new Direction(0, -1); // Or another default direction
         }
-        return head.directionTo(closest);
     }
 
     private Cell getFoodCell() {
@@ -155,7 +147,7 @@ class AStarSearch {
             return false;
         }
         // Check for cycles (revisiting the same cell)
-        var path = reconstructPath(node);
+        List<Cell> path = reconstructPath(node);
         path.add(nextCell);
         if (visitedPaths.contains(path)) {
             return false;
@@ -307,7 +299,9 @@ class AStarSearch {
     }
 
     private int hamiltonianBonus(Cell current, Cell next) {
-        // (Implementation not provided - needs to assess progress towards a Hamiltonian cycle)
+        // TODO: Implement Hamiltonian cycle bonus calculation
+
+        // needs to assess progress towards a Hamiltonian cycle)
         // Example: Check if the move brings the snake closer to a cell that would help complete a cycle
         return 0; // Replace with actual bonus calculation
     }
