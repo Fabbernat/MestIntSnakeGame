@@ -32,16 +32,15 @@ public class AgentDevBranch extends SnakePlayer {
     @Override
     public Direction getAction(long remainingTime) {
         Cell food = getFoodCell();
+        Cell closest = food;
         Cell head = gameState.snake.peekFirst();
         int distance = gameState.maxDistance();
         // Check if gameState or snake is null
-        if (head == null) {
-            // visszater alapertelmezett modon bal irannyal, ha headPostiton null
-            return new Direction(0, -1); // Bal irany
-        }
+        assert (head != null);
         for (Cell c : head.neighbors()) {
             if (gameState.isOnBoard(c) && gameState.getValueAt(c) != SnakeGame.SNAKE && c.distance(food) < distance) {
                 distance = c.distance(food);
+                closest = c;
             }
         }
 
@@ -57,7 +56,7 @@ public class AgentDevBranch extends SnakePlayer {
         } else {
             // If A* doesn't find a path, fall back to the default behavior
             distance = gameState.maxDistance();
-            Cell closest = food;
+            closest = food;
             for (Cell c : head.neighbors()) {
                 if (gameState.isOnBoard(c) && gameState.getValueAt(c) != SnakeGame.SNAKE && c.distance(food) < distance) {
                     distance = c.distance(food);
