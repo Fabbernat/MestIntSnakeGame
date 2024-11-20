@@ -1,7 +1,5 @@
 ///Fabbernat,Fabian.Bernat@stud.u-szeged.hu
 
-///Fabbernat,Fabian.Bernat@stud.u-szeged.hu
-
 import game.snake.Direction;
 import game.snake.SnakeGame;
 import game.snake.SnakePlayer;
@@ -54,8 +52,8 @@ public class Agent extends SnakePlayer {
         AStarSearch search = new AStarSearch(gameState);
         List<Cell> direction = search.findPath(head, food);
 
-        if (direction == null) {
-            return head.directionTo(closest);
+        if (direction != null) {
+            // the app never gets here
         } else {
             // If A* doesn't find a path, fall back to the default behavior
             distance = gameState.maxDistance();
@@ -68,6 +66,7 @@ public class Agent extends SnakePlayer {
             }
             return head.directionTo(closest);
         }
+        return head.directionTo(closest);
     }
 
     private Cell getFoodCell() {
@@ -97,34 +96,34 @@ class AStarSearch {
         this.visitedPaths = new HashSet<>();
     }
 
-    public List<Cell> findPath(Cell start, Cell goal) {
+    public List<Cell> findPath(Cell start, Cell goalCell) {
         PriorityQueue<Node> openSet = new PriorityQueue<>(Comparator.comparingInt(Node::getF));
         Set<Node> closedSet = new HashSet<>();
         visitedPaths.clear(); // Clear visited paths for each new search
 
-        Node startNode = new Node(start, null, 0, heuristic(start, goal));
+        Node startNode = new Node(start, null, 0, heuristic(start, goalCell));
         openSet.add(startNode);
 
         while (!openSet.isEmpty()) {
-            Node current = openSet.poll();
+            Node currentNode = openSet.poll();
 
-            if (current.cell.equals(goal)) {
-                return reconstructPath(current);
+            if (currentNode.cell.equals(goalCell)) {
+                return reconstructPath(currentNode);
             }
 
-            closedSet.add(current);
+            closedSet.add(currentNode);
 
-            for (Node neighbor : getNeighbors(current)) {
+            for (Node neighbor : getNeighbors(currentNode)) {
                 if (closedSet.contains(neighbor)) {
                     continue;
                 }
 
-                int tentativeGScore = current.g + 1; // A koltsegfuggveny mozgasonkent 1 pont
+                int tentativeGScore = currentNode.g + 1; // A koltsegfuggveny mozgasonkent 1 pont
 
                 if (!openSet.contains(neighbor) || tentativeGScore < neighbor.g) {
-                    neighbor.parent = current;
+                    neighbor.parent = currentNode;
                     neighbor.g = tentativeGScore;
-                    neighbor.h = heuristic(neighbor.cell, goal);
+                    neighbor.h = heuristic(neighbor.cell, goalCell);
                     neighbor.f = neighbor.g + neighbor.h;
 
                     if (!openSet.contains(neighbor)) {
