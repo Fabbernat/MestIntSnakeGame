@@ -1,5 +1,5 @@
+/*
 ///Fabbernat,Fabian.Bernat@stud.u-szeged.hu
-import java.util.*;
 
 import game.snake.Direction;
 import game.snake.SnakeGame;
@@ -7,28 +7,38 @@ import game.snake.SnakePlayer;
 import game.snake.utils.Cell;
 import game.snake.utils.SnakeGameState;
 
+import java.util.*;
+
+*/
 /**
  * Az Agent osztaly a kigyot vezerlo agens, amely a jatek allapota alapjan
  * donti el a kovetkezo lepes iranyat. Az agens celja az etel felvetele es a falak,
  * valamint a sajat teste elkerulese.
- */
+ *//*
+
 public class AgentDevBranch extends SnakePlayer {
 
-    /**
+    */
+/**
      * Konstruktor, amely inicializalja az Agent objektumot a megadott jatekkal.
+     *
      * @param gameState Az aktualis jatekter allapota.
-     * @param color A kigyo szine.
-     * @param random random szam generator
-     */
+     * @param color     A kigyo szine.
+     * @param random    random szam generator
+     *//*
+
     public AgentDevBranch(SnakeGameState gameState, int color, Random random) {
         super(gameState, color, random);
     }
 
-    /**
+    */
+/**
      * Meghatarozza az aktualis jatekallapot alapjan a kovetkezo lepes iranyat.
+     *
      * @param remainingTime A hatralevo ido a dontes meghozatalara.
      * @return Az uj irany, amely fele a kigyo mozdul.
-     */
+     *//*
+
     @Override
     public Direction getAction(long remainingTime) {
         Cell food = getFoodCell();
@@ -78,7 +88,7 @@ public class AgentDevBranch extends SnakePlayer {
             }
         }
         // find the closest cell to the food of the head's neighbors
-        assert(food != null);
+        assert (food != null);
         return food;
     }
 }
@@ -87,6 +97,7 @@ class AStarSearch {
 
     private SnakeGameState gameState;
     private Set<List<Cell>> visitedPaths; // To track visited paths and avoid cycles
+    private static final int MAX_SEARCH_DEPTH = 15;
 
     public AStarSearch(SnakeGameState gameState) {
         this.gameState = gameState;
@@ -111,8 +122,7 @@ class AStarSearch {
             closedSet.add(current);
 
             for (Node neighbor : getNeighbors(current)) {
-                if (closedSet.contains(neighbor))
-                {
+                if (closedSet.contains(neighbor)) {
                     continue;
                 }
 
@@ -167,7 +177,35 @@ class AStarSearch {
         SnakeGameState tempState = new SnakeGameState(gameState); // Create a copy of the game state
         tempState.snake.addFirst(nextCell); // Simulate the move
         // Check if the board is still connected after the move (implementation not provided)
-        return !isConnected(tempState);
+        return isTrapped(tempState, nextCell);
+    }
+
+    private boolean isTrapped(SnakeGameState tempState, Cell head) {
+        // 1. Mark all cells as unvisited
+        boolean[][] visited = new boolean[tempState.board.length][tempState.board[0].length];
+
+        // 2. Start a DFS or BFS from the head
+        dfs1(tempState, visited, head); // Or bfs(tempState, visited, head);
+
+        // 3. Check if any empty cell adjacent to the head is unvisited
+        for (Direction dir : new Direction[]{new Direction(0, -1), new Direction(0, 1), new Direction(-1, 0), new Direction(1, 0)}) {
+            Cell neighbor = new Cell(head.i + dir.i, head.j + dir.j);
+            if (tempState.isOnBoard(neighbor) && tempState.getValueAt(neighbor) == SnakeGame.EMPTY && !visited[neighbor.i][neighbor.j]) {
+                return false; // Head is not trapped
+            }
+        }
+
+        return true; // Head is trapped
+    }
+
+    private void dfs1(SnakeGameState tempState, boolean[][] visited, Cell cell) {
+        visited[cell.i][cell.j] = true;
+        for (Direction dir : new Direction[]{new Direction(0, -1), new Direction(0, 1), new Direction(-1, 0), new Direction(1, 0)}) {
+            Cell neighbor = new Cell(cell.i + dir.i, cell.j + dir.j);
+            if (tempState.isOnBoard(neighbor) && tempState.getValueAt(neighbor) == SnakeGame.EMPTY && !visited[neighbor.i][neighbor.j]) {
+                dfs1(tempState, visited, neighbor);
+            }
+        }
     }
 
     private boolean isConnected(SnakeGameState gameState) {
@@ -180,7 +218,7 @@ class AStarSearch {
         if (startCell == null) {
             return false; // No empty cells, board is not connected
         }
-        dfs(graph, visited, startCell); // Or bfs(graph, visited, startCell);
+        dfs2(graph, visited, startCell); // Or bfs(graph, visited, startCell);
 
         // 3. Check if all empty cells have been visited
         for (int i = 0; i < gameState.board.length; i++) {
@@ -227,11 +265,11 @@ class AStarSearch {
         return null;
     }
 
-    private void dfs(Map<Cell, Set<Cell>> graph, Set<Cell> visited, Cell cell) {
+    private void dfs2(Map<Cell, Set<Cell>> graph, Set<Cell> visited, Cell cell) {
         visited.add(cell);
         for (Cell neighbor : graph.getOrDefault(cell, Collections.emptySet())) {
             if (!visited.contains(neighbor)) {
-                dfs(graph, visited, neighbor);
+                dfs2(graph, visited, neighbor);
             }
         }
     }
@@ -253,7 +291,6 @@ class AStarSearch {
     }
 
 
-
     private List<Cell> reconstructPath(Node current) {
         List<Cell> path = new ArrayList<>();
         while (current != null) {
@@ -268,16 +305,44 @@ class AStarSearch {
         // Manhattan distance as base heuristic
         int manhattanDistance = Math.abs(a.i - b.i) + Math.abs(a.j - b.j);
 
-        // Add a bonus for moves that get closer to completing a Hamiltonian cycle
+        // Hozzáadunk egy bonuszt for moves that get closer to completing a Hamiltonian cycle
         int hamiltonianBonus = hamiltonianBonus(a, b);
 
-        return manhattanDistance - hamiltonianBonus;
+        int untrappingBonus = untrappingBonus(a, b);
+
+
+        return manhattanDistance - hamiltonianBonus + untrappingBonus;
     }
 
     private int hamiltonianBonus(Cell current, Cell next) {
         // (Implementation not provided - needs to assess progress towards a Hamiltonian cycle)
         // Example: Check if the move brings the snake closer to a cell that would help complete a cycle
         return 0; // Replace with actual bonus calculation
+    }
+
+    private int untrappingBonus(Cell current, Cell next) {
+        int openSpaceCount = 0;
+        SnakeGameState tempState = new SnakeGameState(gameState);
+        tempState.snake.addFirst(next); // Simulate the move
+
+        Set<Cell> visited = new HashSet<>();
+        Queue<Cell> queue = new LinkedList<>();
+        queue.offer(next);
+        visited.add(next);
+
+        while (!queue.isEmpty() && openSpaceCount < MAX_SEARCH_DEPTH) {
+            Cell cell = queue.poll();
+            for (Direction dir : new Direction[]{new Direction(0, -1), new Direction(0, 1), new Direction(-1, 0), new Direction(1, 0)}) {
+                Cell neighbor = new Cell(cell.i + dir.i, cell.j + dir.j);
+                if (tempState.isOnBoard(neighbor) && tempState.getValueAt(neighbor) == SnakeGame.EMPTY && !visited.contains(neighbor)) {
+                    openSpaceCount++;
+                    visited.add(neighbor);
+                    queue.offer(neighbor);
+                }
+            }
+        }
+
+        return openSpaceCount;
     }
 
     private static class Node {
@@ -300,3 +365,4 @@ class AStarSearch {
         }
     }
 }
+*/
