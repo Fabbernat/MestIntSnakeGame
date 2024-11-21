@@ -35,6 +35,7 @@ public class Agent extends SnakePlayer {
     @Override
     public Direction getAction(long remainingTime) {
         Cell food = getFoodCell();
+        Cell closest = food;
         Cell head = gameState.snake.peekFirst();
 
         if (head == null || food == null) {
@@ -48,17 +49,21 @@ public class Agent extends SnakePlayer {
         if (path != null && path.size() > 1) {
             // Get the next cell from the path
             Cell nextCell = path.get(1);
-            return head.directionTo(nextCell);
+//            return head.directionTo(nextCell);
         } else {
             // Fallback: If A* fails, try to find a safe direction
+            int distance = gameState.maxDistance();
             for (Cell neighbor : head.neighbors()) {
                 if (gameState.isOnBoard(neighbor) && gameState.getValueAt(neighbor) != SnakeGame.SNAKE) {
-                    return head.directionTo(neighbor);
+                    distance = closest.distance(food);
+                    closest = neighbor;
+//                    return head.directionTo(neighbor);
                 }
             }
             // If no safe direction is found, return a default direction
-            return new Direction(0, -1); // Or another default direction
+            return head.directionTo(closest); // Or another default direction
         }
+        return head.directionTo(closest);
     }
 
     private Cell getFoodCell() {
@@ -77,6 +82,7 @@ public class Agent extends SnakePlayer {
     }
 }
 
+/*
 class AStarSearch {
 
     private SnakeGameState gameState;
@@ -351,3 +357,4 @@ class AStarSearch {
         }
     }
 }
+*/
