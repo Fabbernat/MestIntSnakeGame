@@ -52,6 +52,11 @@ public class Agent extends SnakePlayer {
         Cell head = gameState.snake.peekFirst();
         LinkedList<Direction> validDirections = getValidDirections(head);
 
+        if (isTrapped(gameState.snake, food)) {
+            return findQuickestSelfCollision(); // Bite itself as quickly as possible
+        }
+
+        // Alapertelmezett mukodes: priorizaljuk a biztonsagos cselekveseket
         Direction bestDirection = null;
         int bestScore = Integer.MIN_VALUE;
 
@@ -77,6 +82,60 @@ public class Agent extends SnakePlayer {
         // If no valid direction improves the situation, fallback to the current direction
         return bestDirection != null ? bestDirection : gameState.direction;
     }
+
+    /**
+     * Detects if the snake is trapped in a closed region with no reachable apples.
+     */
+    private boolean isTrapped(LinkedList<Cell> snake, Cell food) {
+        Cell head = snake.peekFirst();
+        boolean[][] visited = new boolean[gameState.board.length][gameState.board[0].length];
+        LinkedList<Cell> queue = new LinkedList<>();
+        queue.add(head);
+        visited[head.i][head.j] = true;
+
+        boolean foodReachable = false;
+        int enclosedCells = 0;
+
+        while (!queue.isEmpty()) {
+            Cell current = queue.poll();
+            enclosedCells++;
+
+            for (Cell neighbor : current.neighbors()) {
+                if (gameState.isOnBoard(neighbor) && !visited[neighbor.i][neighbor.j] &&
+                        (gameState.getValueAt(neighbor) != SnakeGame.SNAKE || neighbor.equals(snake.peekLast())) &&
+                        !snake.contains(neighbor)) {
+                    visited[neighbor.i][neighbor.j] = true;
+                    queue.add(neighbor);
+                    if (neighbor.equals(food)) {
+                        foodReachable = true; // Apple found
+                    }
+                }
+            }
+        }
+
+        // If the snake's size is greater than the enclosed cells or no food is reachable, it is trapped
+        return !foodReachable || enclosedCells <= snake.size();
+    }
+
+
+    /**
+     * Determines the quickest path to self-collision when trapped.
+     */
+    private Direction findQuickestSelfCollision() {
+        Cell head = gameState.snake.peekFirst();
+        LinkedList<Direction> validDirections = getValidDirections(head);
+
+        for (Direction direction : validDirections) {
+            Cell newHead = new Cell(head.i + direction.i, head.j + direction.j);
+            if (gameState.isOnBoard(newHead) && gameState.snake.contains(newHead)) {
+                return direction; // Move towards its body to self-collide
+            }
+        }
+
+        // If no valid direction to self-collide, fallback to the current direction
+        return gameState.direction;
+    }
+
 
     private LinkedList<Cell> simulateMove(Direction direction, LinkedList<Cell> snake) {
         LinkedList<Cell> simulatedSnake = new LinkedList<>(snake);
