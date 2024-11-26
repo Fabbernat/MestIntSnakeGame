@@ -46,38 +46,74 @@ public class Agent extends SnakePlayer {
      */
     @Override
     public Direction getAction(long remainingTime) {
-        // find food on the table
         Cell food = getFoodCell();
         if (food == null) return gameState.direction;
 
-        // find the closest cell to the food of the head's neighbors
-        Cell closest = food;
         Cell head = gameState.snake.peekFirst();
-
-        int distance = gameState.maxDistance();
-
-        for (Cell c : head.neighbors()) {
-            if (gameState.isOnBoard(c) && gameState.getValueAt(c) != SnakeGame.SNAKE && c.distance(food) < distance) {
-                distance = c.distance(food);
-                closest = c;
-            }
-        }
-       // return head.directionTo(closest);
-
-
-        int maxIterations = 4;
-        Direction desiredDirection = head.directionTo(closest);
         LinkedList<Direction> validDirections = getValidDirections(head);
-        int count = 0;
-        for (int i = 0; i < maxIterations; i++) {
-            if (!wouldDie(desiredDirection, gameState.snake)) {
-                return desiredDirection; // Safe direction found
+
+        Direction bestDirection = null;
+        int bestScore = Integer.MIN_VALUE;
+
+        for (Direction direction : validDirections) {
+            // Simulate the move
+            LinkedList<Cell> simulatedSnake = simulateMove(direction, gameState.snake);
+
+            // Calculate risk score based on accessible cells
+            int accessibilityScore = calculateAccessibility(simulatedSnake);
+
+            // Add a weight for food proximity
+            Cell newHead = new Cell(head.i + direction.i, head.j + direction.j);
+            int distanceToFood = food != null ? newHead.distance(food) : Integer.MAX_VALUE;
+            int moveScore = accessibilityScore - distanceToFood;
+
+            // Select the direction with the best combined score
+            if (moveScore > bestScore) {
+                bestScore = moveScore;
+                bestDirection = direction;
             }
-            // Fallback to next valid direction
-            desiredDirection = validDirections.poll();
-            if (desiredDirection == null) break;
         }
-        return gameState.direction;
+
+        // If no valid direction improves the situation, fallback to the current direction
+        return bestDirection != null ? bestDirection : gameState.direction;
+    }
+
+    private LinkedList<Cell> simulateMove(Direction direction, LinkedList<Cell> snake) {
+        LinkedList<Cell> simulatedSnake = new LinkedList<>(snake);
+        Cell newHead = new Cell(snake.peekFirst().i + direction.i, snake.peekFirst().j + direction.j);
+        simulatedSnake.addFirst(newHead);
+
+        if (!newHead.equals(getFoodCell())) {
+            simulatedSnake.removeLast(); // Tail moves forward if no food is consumed
+        }
+        return simulatedSnake;
+    }
+
+    private int calculateAccessibility(LinkedList<Cell> snake) {
+        Cell head = snake.peekFirst();
+        boolean[][] visited = new boolean[gameState.board.length][gameState.board[0].length];
+        LinkedList<Cell> queue = new LinkedList<>();
+        queue.add(head);
+        visited[head.i][head.j] = true;
+
+        int accessibleCells = 0;
+
+        while (!queue.isEmpty()) {
+            Cell current = queue.poll();
+            accessibleCells++;
+
+            for (Cell neighbor : current.neighbors()) {
+                if (gameState.isOnBoard(neighbor) &&
+                        !visited[neighbor.i][neighbor.j] &&
+                        (gameState.getValueAt(neighbor) != SnakeGame.SNAKE || neighbor.equals(snake.peekLast())) &&
+                        !snake.contains(neighbor)) {
+                    visited[neighbor.i][neighbor.j] = true;
+                    queue.add(neighbor);
+                }
+            }
+        }
+
+        return accessibleCells; // Number of accessible cells from the current state
     }
 
     private LinkedList<Direction> getValidDirections(Cell head) {
