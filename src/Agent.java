@@ -1,4 +1,4 @@
-///Fabbernat,Fabian.Bernat@stud.u-szeged.hu
+///raharap_a_farkara,Fabian.Bernat@stud.u-szeged.hu
 
 import game.snake.Direction;
 import game.snake.SnakeGame;
@@ -6,7 +6,20 @@ import game.snake.SnakePlayer;
 import game.snake.utils.Cell;
 import game.snake.utils.SnakeGameState;
 
-import java.util.*;
+import java.util.LinkedList;
+import java.util.Objects;
+import java.util.Random;
+
+enum Directions{
+    UP(-1, 0),
+    DOWN(1, 0),
+    LEFT(0, -1),
+    RIGHT(0, 1);
+
+    Directions(int row, int column) {
+
+    }
+}
 
 /**
  * Az Agent osztaly a kigyot vezerlo agens, amely a jatek allapota alapjan
@@ -34,327 +47,100 @@ public class Agent extends SnakePlayer {
      */
     @Override
     public Direction getAction(long remainingTime) {
+        // find food on the table
         Cell food = getFoodCell();
+        if (food == null) return gameState.direction;
+
+        // find the closest cell to the food of the head's neighbors
         Cell closest = food;
         Cell head = gameState.snake.peekFirst();
+        int distance = gameState.maxDistance();
 
-        if (head == null || food == null) {
-            return new Direction(0, -1); // Or another default direction
+        for (Cell c : head.neighbors()) {
+            if (gameState.isOnBoard(c) && gameState.getValueAt(c) != SnakeGame.SNAKE && c.distance(food) < distance) {
+                distance = c.distance(food);
+                closest = c;
+            }
+        }
+       // return head.directionTo(closest);
+
+
+        Direction desiredDirection = head.directionTo(closest);
+        while (wouldMakeATrapCircle(desiredDirection, gameState.snake)) {
+            int random = this.random.nextInt() * 2;
+            if (desiredDirection.i == head.i - 1){
+                desiredDirection = (random >= 1 ? SnakeGame.LEFT : SnakeGame.RIGHT);
+            } else if (desiredDirection.i == head.i + 1) {
+                desiredDirection = (random < 1 ? SnakeGame.LEFT : SnakeGame.RIGHT);
+            } else if (desiredDirection.j == head.j - 1) {
+                desiredDirection = (random >= 1 ? SnakeGame.UP : SnakeGame.DOWN);
+            } else if (desiredDirection.j == head.j + 1) {
+                desiredDirection = (random < 1 ? SnakeGame.UP : SnakeGame.DOWN);
+            }
+        }
+        return desiredDirection;
+    }
+
+    boolean wouldMakeATrapCircle(Direction d, LinkedList<Cell> snake){
+        Cell tail = gameState.getTail();
+        Cell head = snake.peekFirst();
+        assert (head != null);
+
+        Cell newHead = new Cell(head.i + d.i, head.j + d.j);
+
+        if (!gameState.isOnBoard(newHead) || snake.contains(newHead)) {
+            return true;
         }
 
-        // A* kereso algo
-        AStarSearch search = new AStarSearch(gameState);
-        List<Cell> path = search.findPath(head, food);
+        LinkedList<Cell> simulatedSnake = new LinkedList<>(snake);
+        simulatedSnake.addFirst(newHead);
 
-        if (path != null && path.size() > 1) {
-            // Get the next cell from the path
-            Cell nextCell = path.get(1);
-//            return head.directionTo(nextCell);
-        } else {
-            // Fallback: If A* fails, try to find a safe direction
-            int distance = gameState.maxDistance();
-            for (Cell neighbor : head.neighbors()) {
-                if (gameState.isOnBoard(neighbor) && gameState.getValueAt(neighbor) != SnakeGame.SNAKE) {
-                    distance = closest.distance(food);
-                    closest = neighbor;
-//                    return head.directionTo(neighbor);
+
+        if (!newHead.equals(getFoodCell())) {
+            simulatedSnake.removeLast();
+        }
+
+        return !hasEscapeRoute(simulatedSnake);
+    }
+
+    private boolean hasEscapeRoute(LinkedList<Cell> snake) {
+        Cell head = snake.peekFirst();
+        boolean[][] visited = new boolean[gameState.board.length][gameState.board[0].length];
+        LinkedList<Cell> queue = new LinkedList<>();
+        queue.add(head);
+        visited[head.i][head.j] = true;
+
+        int accessibleCells = 0;
+        while (!queue.isEmpty()) {
+            Cell current = queue.poll();
+            accessibleCells++;
+
+            for (Cell neighbor : current.neighbors()) {
+                if (gameState.isOnBoard(neighbor) &&
+                        !visited[neighbor.i][neighbor.j] &&
+                        (gameState.getValueAt(neighbor) != SnakeGame.SNAKE || neighbor.equals(snake.peekLast())) &&
+                        !snake.contains(neighbor)) {
+                    visited[neighbor.i][neighbor.j] = true;
+                    queue.add(neighbor);
                 }
             }
-            // If no safe direction is found, return a default direction
-            return head.directionTo(closest); // Or another default direction
         }
-        return head.directionTo(closest);
+
+        // Check if the snake can access enough open cells to survive
+        return accessibleCells >= snake.size();
     }
+
 
     private Cell getFoodCell() {
         Cell food = null;
-        for (int row = 0; row < gameState.board.length; row++) {
+        outer: for (int row = 0; row < gameState.board.length; row++) {
             for (int column = 0; column < gameState.board[row].length; column++) {
                 if (gameState.board[row][column] == SnakeGame.FOOD) {
                     food = new Cell(row, column);
-                    break; // A dupla for ciklusnak nem kell vegigiteralnia a tombon, ha mar megtalalta az etelt. Ez idopocsekolas lenne.
+                    break outer; // A dupla for ciklusnak nem kell vegigiteralnia a tombon, ha mar megtalalta az etelt. Ez idopocsekolas lenne.
                 }
             }
         }
-        // find the closest cell to the food of the head's neighbors
-        assert (food != null);
         return food;
     }
 }
-
-/*
-class AStarSearch {
-
-    private SnakeGameState gameState;
-    private Set<List<Cell>> visitedPaths; // To track visited paths and avoid cycles
-    private static final int MAX_SEARCH_DEPTH = 15;
-
-    public AStarSearch(SnakeGameState gameState) {
-        this.gameState = gameState;
-        this.visitedPaths = new HashSet<>();
-    }
-
-    public List<Cell> findPath(Cell start, Cell goalCell) {
-        PriorityQueue<Node> openSet = new PriorityQueue<>(Comparator.comparingInt(Node::getF));
-        Set<Node> closedSet = new HashSet<>();
-        visitedPaths.clear(); // Clear visited paths for each new search
-
-        Node startNode = new Node(start, null, 0, heuristic(start, goalCell));
-        openSet.add(startNode);
-
-        while (!openSet.isEmpty()) {
-            Node currentNode = openSet.poll();
-
-            if (currentNode.cell.equals(goalCell)) {
-                return reconstructPath(currentNode);
-            }
-
-            closedSet.add(currentNode);
-
-            for (Node neighbor : getNeighbors(currentNode)) {
-                if (closedSet.contains(neighbor)) {
-                    continue;
-                }
-
-                int tentativeGScore = currentNode.g + 1; // A koltsegfuggveny mozgasonkent 1 pont
-
-                if (!openSet.contains(neighbor) || tentativeGScore < neighbor.g) {
-                    neighbor.parent = currentNode;
-                    neighbor.g = tentativeGScore;
-                    neighbor.h = heuristic(neighbor.cell, goalCell);
-                    neighbor.f = neighbor.g + neighbor.h;
-
-                    if (!openSet.contains(neighbor)) {
-                        openSet.add(neighbor);
-                    }
-                }
-            }
-        }
-
-        return null; // No path found
-    }
-
-    private List<Node> getNeighbors(Node node) {
-        List<Node> neighbors = new ArrayList<>();
-        Cell currentCell = node.cell;
-        // Check the four possible directions (bal, jobb, fel, le)
-        for (Direction dir : new Direction[]{new Direction(0, -1), new Direction(0, 1), new Direction(-1, 0), new Direction(1, 0)}) {
-            Cell nextCell = new Cell(currentCell.i + dir.i, currentCell.j + dir.j);
-            if (isValidMove(node, nextCell)) {
-                neighbors.add(new Node(nextCell, null, 0, 0));
-            }
-        }
-        return neighbors;
-    }
-
-    private boolean isValidMove(Node node, Cell nextCell) {
-        // Check boundaries, snake body, and avoid creating cuts
-        if (!gameState.isOnBoard(nextCell) || gameState.getValueAt(nextCell) == SnakeGame.SNAKE || createsCut(node, nextCell)) {
-            return false;
-        }
-        // Check for cycles (revisiting the same cell)
-        List<Cell> path = reconstructPath(node);
-        path.add(nextCell);
-        if (visitedPaths.contains(path)) {
-            return false;
-        }
-        visitedPaths.add(path);
-        return true;
-    }
-
-    private boolean createsCut(Node node, Cell nextCell) {
-        // Simulate the move and check for board connectivity
-        SnakeGameState tempState = new SnakeGameState(gameState); // Create a copy of the game state
-        tempState.snake.addFirst(nextCell); // Simulate the move
-        // Check if the board is still connected after the move (implementation not provided)
-        return isTrapped(tempState, nextCell);
-    }
-
-    private boolean isTrapped(SnakeGameState tempState, Cell head) {
-        // 1. Mark all cells as unvisited
-        boolean[][] visited = new boolean[tempState.board.length][tempState.board[0].length];
-
-        // 2. Start a DFS or BFS from the head
-        dfs1(tempState, visited, head); // Or bfs(tempState, visited, head);
-
-        // 3. Check if any empty cell adjacent to the head is unvisited
-        for (Direction dir : new Direction[]{new Direction(0, -1), new Direction(0, 1), new Direction(-1, 0), new Direction(1, 0)}) {
-            Cell neighbor = new Cell(head.i + dir.i, head.j + dir.j);
-            if (tempState.isOnBoard(neighbor) && tempState.getValueAt(neighbor) == SnakeGame.EMPTY && !visited[neighbor.i][neighbor.j]) {
-                return false; // Head is not trapped
-            }
-        }
-
-        return true; // Head is trapped
-    }
-
-    private void dfs1(SnakeGameState tempState, boolean[][] visited, Cell cell) {
-        visited[cell.i][cell.j] = true;
-        for (Direction dir : new Direction[]{new Direction(0, -1), new Direction(0, 1), new Direction(-1, 0), new Direction(1, 0)}) {
-            Cell neighbor = new Cell(cell.i + dir.i, cell.j + dir.j);
-            if (tempState.isOnBoard(neighbor) && tempState.getValueAt(neighbor) == SnakeGame.EMPTY && !visited[neighbor.i][neighbor.j]) {
-                dfs1(tempState, visited, neighbor);
-            }
-        }
-    }
-
-    private boolean isConnected(SnakeGameState gameState) {
-        // 1. Create a graph representation of the board
-        Map<Cell, Set<Cell>> graph = createGraph(gameState);
-
-        // 2. Start a Depth-First Search (DFS) or Breadth-First Search (BFS) from any empty cell
-        Set<Cell> visited = new HashSet<>();
-        Cell startCell = findEmptyCell(gameState);
-        if (startCell == null) {
-            return false; // No empty cells, board is not connected
-        }
-        dfs2(graph, visited, startCell); // Or bfs(graph, visited, startCell);
-
-        // 3. Check if all empty cells have been visited
-        for (int i = 0; i < gameState.board.length; i++) {
-            for (int j = 0; j < gameState.board[i].length; j++) {
-                Cell cell = new Cell(i, j);
-                if (gameState.getValueAt(cell) == SnakeGame.EMPTY && !visited.contains(cell)) {
-                    return false; // Not all empty cells are reachable
-                }
-            }
-        }
-
-        return true; // All empty cells are connected
-    }
-
-    private Map<Cell, Set<Cell>> createGraph(SnakeGameState gameState) {
-        Map<Cell, Set<Cell>> graph = new HashMap<>();
-        for (int i = 0; i < gameState.board.length; i++) {
-            for (int j = 0; j < gameState.board[i].length; j++) {
-                Cell cell = new Cell(i, j);
-                if (gameState.getValueAt(cell) == SnakeGame.EMPTY) {
-                    Set<Cell> neighbors = new HashSet<>();
-                    for (Direction dir : new Direction[]{new Direction(0, -1), new Direction(0, 1), new Direction(-1, 0), new Direction(1, 0)}) {
-                        Cell neighbor = new Cell(cell.i + dir.i, cell.j + dir.j);
-                        if (gameState.isOnBoard(neighbor) && gameState.getValueAt(neighbor) == SnakeGame.EMPTY) {
-                            neighbors.add(neighbor);
-                        }
-                    }
-                    graph.put(cell, neighbors);
-                }
-            }
-        }
-        return graph;
-    }
-
-    private Cell findEmptyCell(SnakeGameState gameState) {
-        for (int i = 0; i < gameState.board.length; i++) {
-            for (int j = 0; j < gameState.board[i].length; j++) {
-                Cell cell = new Cell(i, j);
-                if (gameState.getValueAt(cell) == SnakeGame.EMPTY) {
-                    return cell;
-                }
-            }
-        }
-        return null;
-    }
-
-    private void dfs2(Map<Cell, Set<Cell>> graph, Set<Cell> visited, Cell cell) {
-        visited.add(cell);
-        for (Cell neighbor : graph.getOrDefault(cell, Collections.emptySet())) {
-            if (!visited.contains(neighbor)) {
-                dfs2(graph, visited, neighbor);
-            }
-        }
-    }
-
-    private void bfs(Map<Cell, Set<Cell>> graph, Set<Cell> visited, Cell startCell) {
-        Queue<Cell> queue = new LinkedList<>();
-        queue.offer(startCell);
-        visited.add(startCell);
-
-        while (!queue.isEmpty()) {
-            Cell current = queue.poll();
-            for (Cell neighbor : graph.getOrDefault(current, Collections.emptySet())) {
-                if (!visited.contains(neighbor)) {
-                    visited.add(neighbor);
-                    queue.offer(neighbor);
-                }
-            }
-        }
-    }
-
-
-    private List<Cell> reconstructPath(Node current) {
-        List<Cell> path = new ArrayList<>();
-        while (current != null) {
-            path.add(current.cell);
-            current = current.parent;
-        }
-        Collections.reverse(path);
-        return path;
-    }
-
-    private int heuristic(Cell a, Cell b) {
-        // Manhattan distance as base heuristic
-        int manhattanDistance = Math.abs(a.i - b.i) + Math.abs(a.j - b.j);
-
-        // Hozzaadunk egy bonuszt for moves that get closer to completing a Hamiltonian cycle
-        int hamiltonianBonus = hamiltonianBonus(a, b);
-
-        int untrappingBonus = untrappingBonus(a, b);
-
-
-        return manhattanDistance - hamiltonianBonus + untrappingBonus;
-    }
-
-    private int hamiltonianBonus(Cell current, Cell next) {
-        // TODO: Implement Hamiltonian cycle bonus calculation
-
-        // needs to assess progress towards a Hamiltonian cycle)
-        // Example: Check if the move brings the snake closer to a cell that would help complete a cycle
-        return 0; // Replace with actual bonus calculation
-    }
-
-    private int untrappingBonus(Cell current, Cell next) {
-        int openSpaceCount = 0;
-        SnakeGameState tempState = new SnakeGameState(gameState);
-        tempState.snake.addFirst(next); // Simulate the move
-
-        Set<Cell> visited = new HashSet<>();
-        Queue<Cell> queue = new LinkedList<>();
-        queue.offer(next);
-        visited.add(next);
-
-        while (!queue.isEmpty() && openSpaceCount < MAX_SEARCH_DEPTH) {
-            Cell cell = queue.poll();
-            for (Direction dir : new Direction[]{new Direction(0, -1), new Direction(0, 1), new Direction(-1, 0), new Direction(1, 0)}) {
-                Cell neighbor = new Cell(cell.i + dir.i, cell.j + dir.j);
-                if (tempState.isOnBoard(neighbor) && tempState.getValueAt(neighbor) == SnakeGame.EMPTY && !visited.contains(neighbor)) {
-                    openSpaceCount++;
-                    visited.add(neighbor);
-                    queue.offer(neighbor);
-                }
-            }
-        }
-
-        return openSpaceCount;
-    }
-
-    private static class Node {
-        Cell cell;
-        Node parent;
-        int g; // Cost from start to this node
-        int h; // Heuristic estimate to goal
-        int f; // Total cost (g + h)
-
-        public Node(Cell cell, Node parent, int g, int h) {
-            this.cell = cell;
-            this.parent = parent;
-            this.g = g;
-            this.h = h;
-            this.f = g + h;
-        }
-
-        public int getF() {
-            return f;
-        }
-    }
-}
-*/

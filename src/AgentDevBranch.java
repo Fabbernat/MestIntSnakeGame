@@ -38,7 +38,6 @@ public class AgentDevBranch extends SnakePlayer {
         Cell closest = food;
         Cell head = gameState.snake.peekFirst();
         int distance = gameState.maxDistance();
-        // Check if gameState or snake is null
         assert (head != null);
         for (Cell c : head.neighbors()) {
             if (gameState.isOnBoard(c) && gameState.getValueAt(c) != SnakeGame.SNAKE && c.distance(food) < distance) {
@@ -58,7 +57,6 @@ public class AgentDevBranch extends SnakePlayer {
             // Fallback mechanism if A* fails (ensure it stays within bounds)
             return safeFallbackDirection(head, food);
         }
-        // If A* doesn't find a path, fall back to the default behavior
     }
 
     private Direction safeFallbackDirection(Cell head, Cell food) {
@@ -83,8 +81,6 @@ public class AgentDevBranch extends SnakePlayer {
                 }
             }
         }
-        // find the closest cell to the food of the head's neighbors
-        assert (food != null);
         return food;
     }
 }
