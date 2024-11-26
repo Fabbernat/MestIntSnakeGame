@@ -1,4 +1,4 @@
-///raharap_a_farkara,Fabian.Bernat@stud.u-szeged.hu
+///Fabbernat_DROP_TABLE_HALLGATOK,Fabian.Bernat@stud.u-szeged.hu
 
 import game.snake.Direction;
 import game.snake.SnakeGame;
