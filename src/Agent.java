@@ -7,7 +7,6 @@ import game.snake.utils.Cell;
 import game.snake.utils.SnakeGameState;
 
 import java.util.LinkedList;
-import java.util.Objects;
 import java.util.Random;
 
 enum Directions{
@@ -54,6 +53,7 @@ public class Agent extends SnakePlayer {
         // find the closest cell to the food of the head's neighbors
         Cell closest = food;
         Cell head = gameState.snake.peekFirst();
+
         int distance = gameState.maxDistance();
 
         for (Cell c : head.neighbors()) {
@@ -65,29 +65,39 @@ public class Agent extends SnakePlayer {
        // return head.directionTo(closest);
 
 
+        int maxIterations = 4;
         Direction desiredDirection = head.directionTo(closest);
-        while (wouldMakeATrapCircle(desiredDirection, gameState.snake)) {
-            int random = this.random.nextInt() * 2;
-            if (desiredDirection.i == head.i - 1){
-                desiredDirection = (random >= 1 ? SnakeGame.LEFT : SnakeGame.RIGHT);
-            } else if (desiredDirection.i == head.i + 1) {
-                desiredDirection = (random < 1 ? SnakeGame.LEFT : SnakeGame.RIGHT);
-            } else if (desiredDirection.j == head.j - 1) {
-                desiredDirection = (random >= 1 ? SnakeGame.UP : SnakeGame.DOWN);
-            } else if (desiredDirection.j == head.j + 1) {
-                desiredDirection = (random < 1 ? SnakeGame.UP : SnakeGame.DOWN);
+        LinkedList<Direction> validDirections = getValidDirections(head);
+        int count = 0;
+        for (int i = 0; i < maxIterations; i++) {
+            if (!wouldDie(desiredDirection, gameState.snake)) {
+                return desiredDirection; // Safe direction found
             }
+            // Fallback to next valid direction
+            desiredDirection = validDirections.poll();
+            if (desiredDirection == null) break;
         }
-        return desiredDirection;
+        return gameState.direction;
     }
 
-    boolean wouldMakeATrapCircle(Direction d, LinkedList<Cell> snake){
+    private LinkedList<Direction> getValidDirections(Cell head) {
+        LinkedList<Direction> directions = new LinkedList<>();
+        for (Cell neighbor : head.neighbors()) {
+            if (gameState.isOnBoard(neighbor) && gameState.getValueAt(neighbor) != SnakeGame.SNAKE) {
+                directions.add(head.directionTo(neighbor));
+            }
+        }
+        return directions;
+    }
+
+    boolean wouldDie(Direction d, LinkedList<Cell> snake){
         Cell tail = gameState.getTail();
         Cell head = snake.peekFirst();
         assert (head != null);
 
         Cell newHead = new Cell(head.i + d.i, head.j + d.j);
 
+        // ha kimenne a palyarol, vagy nekimenne maganak, akkor wouldDie
         if (!gameState.isOnBoard(newHead) || snake.contains(newHead)) {
             return true;
         }
@@ -111,9 +121,16 @@ public class Agent extends SnakePlayer {
         visited[head.i][head.j] = true;
 
         int accessibleCells = 0;
+        int requiredCells = snake.size();
+
         while (!queue.isEmpty()) {
             Cell current = queue.poll();
             accessibleCells++;
+
+            // Check if the snake can access enough open cells to survive
+            if (accessibleCells >= requiredCells) {
+                return true; // Early exit: enough cells are accessible
+            }
 
             for (Cell neighbor : current.neighbors()) {
                 if (gameState.isOnBoard(neighbor) &&
@@ -126,8 +143,7 @@ public class Agent extends SnakePlayer {
             }
         }
 
-        // Check if the snake can access enough open cells to survive
-        return accessibleCells >= snake.size();
+        return false;
     }
 
 
