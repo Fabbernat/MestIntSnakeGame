@@ -10,7 +10,6 @@ import java.util.LinkedList;
 import java.util.Random;
 
 
-
 /**
  * Az Agent osztaly a kigyot vezerlo agens, amely a jatek allapota alapjan
  * donti el a kovetkezo lepes iranyat. Az agens celja az etel felvetele es a falak,
@@ -53,29 +52,34 @@ public class Agent extends SnakePlayer {
             // Check if food is reachable after the move
             boolean foodReachable = isFoodReachable(simulatedSnake, food);
 
-            // Calculate accessibility and region size
+            // Calculate accessibility and hole size
             int accessibilityScore = calculateAccessibility(simulatedSnake);
-            int regionSize = calculateRegionSize(simulatedSnake);
+            int holeSize = calculateHoleSize(simulatedSnake);
 
             // Add weight for food proximity
             Cell newHead = new Cell(head.i + direction.i, head.j + direction.j);
-            int distanceToFood = foodReachable ? newHead.distance(food) : Integer.MAX_VALUE;
+            int distanceToFood = newHead.distance(food);
+            int proximityWeight = foodReachable ? (100 - distanceToFood) : 0;
 
-            // Penalize moves into regions smaller than the snake size
-            int moveScore = foodReachable ? (accessibilityScore - distanceToFood) : Integer.MIN_VALUE;
-            if (regionSize < gameState.snake.size()) {
-                moveScore -= 1000; // Penalize moves into small regions
-            }
+            // Penalize moves into small holes
+            int holePenalty = holeSize < gameState.snake.size() ? 500 + (gameState.snake.size() - holeSize) * 10 : 0;
 
-            // Select the direction with the best combined score
+            // Score the move
+            int moveScore = accessibilityScore + proximityWeight - holePenalty;
+
+            // Select the direction with the best score
             if (moveScore > bestScore) {
                 bestScore = moveScore;
                 bestDirection = direction;
             }
         }
 
-        // If no valid direction improves the situation, fallback to the current direction
-        return bestDirection != null ? bestDirection : gameState.direction;
+        // Fallback to the safest option if no better direction is found
+        return bestDirection != null ? bestDirection : validDirections.stream()
+                .max((d1, d2) -> Integer.compare(
+                        calculateAccessibility(simulateMove(d1, gameState.snake)),
+                        calculateAccessibility(simulateMove(d2, gameState.snake))
+                )).orElse(gameState.direction);
     }
 
     /**
@@ -84,7 +88,7 @@ public class Agent extends SnakePlayer {
      * @param snake The simulated snake state after the move.
      * @return The size of the region (hole size) the snake occupies.
      */
-    private int calculateRegionSize(LinkedList<Cell> snake) {
+    private int calculateHoleSize(LinkedList<Cell> snake) {
         Cell head = snake.peekFirst();
         boolean[][] visited = new boolean[gameState.board.length][gameState.board[0].length];
         LinkedList<Cell> queue = new LinkedList<>();
@@ -110,6 +114,7 @@ public class Agent extends SnakePlayer {
 
         return regionSize; // Size of the reachable region from the snake's head
     }
+
 
     private boolean isFoodReachable(LinkedList<Cell> snake, Cell food) {
         Cell head = snake.peekFirst();
@@ -203,6 +208,7 @@ public class Agent extends SnakePlayer {
         LinkedList<Cell> simulatedSnake = new LinkedList<>(snake);
         simulatedSnake.addFirst(newHead);
 
+
         if (!newHead.equals(getFoodCell())) {
             simulatedSnake.removeLast();
         }
@@ -242,6 +248,7 @@ public class Agent extends SnakePlayer {
 
         return false;
     }
+
 
     private Cell getFoodCell() {
         Cell food = null;
