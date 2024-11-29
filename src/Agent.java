@@ -52,11 +52,6 @@ public class Agent extends SnakePlayer {
         Cell head = gameState.snake.peekFirst();
         LinkedList<Direction> validDirections = getValidDirections(head);
 
-        // Prioritize going UP if it's a valid direction
-        if (validDirections.contains(SnakeGame.UP)) {
-            return SnakeGame.UP;
-        }
-
         Direction bestDirection = null;
         int bestScore = Integer.MIN_VALUE;
 
@@ -64,13 +59,18 @@ public class Agent extends SnakePlayer {
             // Simulate the move
             LinkedList<Cell> simulatedSnake = simulateMove(direction, gameState.snake);
 
+            // Check if food is reachable after the move
+            boolean foodReachable = isFoodReachable(simulatedSnake, food);
+
             // Calculate risk score based on accessible cells
             int accessibilityScore = calculateAccessibility(simulatedSnake);
 
-            // Add a weight for food proximity
+            // Add weight for food proximity only if food is reachable
             Cell newHead = new Cell(head.i + direction.i, head.j + direction.j);
-            int distanceToFood = food != null ? newHead.distance(food) : Integer.MAX_VALUE;
-            int moveScore = accessibilityScore - distanceToFood;
+            int distanceToFood = foodReachable ? newHead.distance(food) : Integer.MAX_VALUE;
+
+            // Combine scores: prioritize moves that keep food reachable and maximize accessibility
+            int moveScore = foodReachable ? (accessibilityScore - distanceToFood) : Integer.MIN_VALUE;
 
             // Select the direction with the best combined score
             if (moveScore > bestScore) {
@@ -79,8 +79,39 @@ public class Agent extends SnakePlayer {
             }
         }
 
+
+
         // If no valid direction improves the situation, fallback to the current direction
         return bestDirection != null ? bestDirection : gameState.direction;
+    }
+
+    private boolean isFoodReachable(LinkedList<Cell> snake, Cell food) {
+        Cell head = snake.peekFirst();
+        boolean[][] visited = new boolean[gameState.board.length][gameState.board[0].length];
+        LinkedList<Cell> queue = new LinkedList<>();
+        queue.add(head);
+        visited[head.i][head.j] = true;
+
+        while (!queue.isEmpty()) {
+            Cell current = queue.poll();
+
+            // If food is reachable, return true
+            if (current.equals(food)) {
+                return true;
+            }
+
+            for (Cell neighbor : current.neighbors()) {
+                if (gameState.isOnBoard(neighbor) &&
+                        !visited[neighbor.i][neighbor.j] &&
+                        (gameState.getValueAt(neighbor) != SnakeGame.SNAKE || neighbor.equals(snake.peekLast())) &&
+                        !snake.contains(neighbor)) {
+                    visited[neighbor.i][neighbor.j] = true;
+                    queue.add(neighbor);
+                }
+            }
+        }
+
+        return false; // Food is not reachable
     }
 
     private LinkedList<Cell> simulateMove(Direction direction, LinkedList<Cell> snake) {
