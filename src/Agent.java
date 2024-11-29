@@ -52,6 +52,11 @@ public class Agent extends SnakePlayer {
         Cell head = gameState.snake.peekFirst();
         LinkedList<Direction> validDirections = getValidDirections(head);
 
+        // Prioritize going UP if it's a valid direction
+        if (validDirections.contains(SnakeGame.UP)) {
+            return SnakeGame.UP;
+        }
+
         Direction bestDirection = null;
         int bestScore = Integer.MIN_VALUE;
 
