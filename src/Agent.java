@@ -9,16 +9,7 @@ import game.snake.utils.SnakeGameState;
 import java.util.LinkedList;
 import java.util.Random;
 
-enum Directions{
-    UP(-1, 0),
-    DOWN(1, 0),
-    LEFT(0, -1),
-    RIGHT(0, 1);
 
-    Directions(int row, int column) {
-
-    }
-}
 
 /**
  * Az Agent osztaly a kigyot vezerlo agens, amely a jatek allapota alapjan
@@ -62,18 +53,18 @@ public class Agent extends SnakePlayer {
             // Check if food is reachable after the move
             boolean foodReachable = isFoodReachable(simulatedSnake, food);
 
-            // Calculate accessibility and hole size
+            // Calculate accessibility and region size
             int accessibilityScore = calculateAccessibility(simulatedSnake);
-            int holeSize = calculateHoleSize(simulatedSnake);
+            int regionSize = calculateRegionSize(simulatedSnake);
 
-            // Add weight for food proximity only if food is reachable
+            // Add weight for food proximity
             Cell newHead = new Cell(head.i + direction.i, head.j + direction.j);
             int distanceToFood = foodReachable ? newHead.distance(food) : Integer.MAX_VALUE;
 
-            // Penalize moves into small holes that trap the snake
+            // Penalize moves into regions smaller than the snake size
             int moveScore = foodReachable ? (accessibilityScore - distanceToFood) : Integer.MIN_VALUE;
-            if (holeSize < gameState.snake.size()) {
-                moveScore -= 1000; // Penalize moves leading to small holes
+            if (regionSize < gameState.snake.size()) {
+                moveScore -= 1000; // Penalize moves into small regions
             }
 
             // Select the direction with the best combined score
@@ -93,7 +84,7 @@ public class Agent extends SnakePlayer {
      * @param snake The simulated snake state after the move.
      * @return The size of the region (hole size) the snake occupies.
      */
-    private int calculateHoleSize(LinkedList<Cell> snake) {
+    private int calculateRegionSize(LinkedList<Cell> snake) {
         Cell head = snake.peekFirst();
         boolean[][] visited = new boolean[gameState.board.length][gameState.board[0].length];
         LinkedList<Cell> queue = new LinkedList<>();
@@ -119,7 +110,6 @@ public class Agent extends SnakePlayer {
 
         return regionSize; // Size of the reachable region from the snake's head
     }
-
 
     private boolean isFoodReachable(LinkedList<Cell> snake, Cell food) {
         Cell head = snake.peekFirst();
@@ -213,7 +203,6 @@ public class Agent extends SnakePlayer {
         LinkedList<Cell> simulatedSnake = new LinkedList<>(snake);
         simulatedSnake.addFirst(newHead);
 
-
         if (!newHead.equals(getFoodCell())) {
             simulatedSnake.removeLast();
         }
@@ -253,7 +242,6 @@ public class Agent extends SnakePlayer {
 
         return false;
     }
-
 
     private Cell getFoodCell() {
         Cell food = null;
