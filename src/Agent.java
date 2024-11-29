@@ -1,4 +1,4 @@
-///Fabbernat DROP TABLE HALLGATOK,Fabian.Bernat@stud.u-szeged.hu
+/// Fabbernat DROP TABLE HALLGATOK,Fabian.Bernat@stud.u-szeged.hu
 
 import game.snake.Direction;
 import game.snake.SnakeGame;
@@ -46,35 +46,35 @@ public class Agent extends SnakePlayer {
         int bestScore = Integer.MIN_VALUE;
 
         for (Direction direction : validDirections) {
-            // Simulate the move
+            // A move szimulalasa
             LinkedList<Cell> simulatedSnake = simulateMove(direction, gameState.snake);
 
-            // Check if food is reachable after the move
+            // Ellenőrizze, hogy az étel elérhető-e a költözés után
             boolean foodReachable = isFoodReachable(simulatedSnake, food);
 
-            // Calculate accessibility and hole size
+            // A hozzáférhetőség és a furatméret kiszámítása
             int accessibilityScore = calculateAccessibility(simulatedSnake);
             int holeSize = calculateHoleSize(simulatedSnake);
 
-            // Add weight for food proximity
+// Súly hozzáadása az élelmiszer közelsége miatt
             Cell newHead = new Cell(head.i + direction.i, head.j + direction.j);
             int distanceToFood = newHead.distance(food);
             int proximityWeight = foodReachable ? (100 - distanceToFood) : 0;
 
-            // Penalize moves into small holes
+// Kis lyukakba való belépés büntetése
             int holePenalty = holeSize < gameState.snake.size() ? 500 + (gameState.snake.size() - holeSize) * 10 : 0;
 
-            // Score the move
+            // Pontozd a lépést
             int moveScore = accessibilityScore + proximityWeight - holePenalty;
 
-            // Select the direction with the best score
+            // Válassza ki a legjobb pontszámot elérő irányt
             if (moveScore > bestScore) {
                 bestScore = moveScore;
                 bestDirection = direction;
             }
         }
 
-        // Fallback to the safest option if no better direction is found
+        // Visszatérés a legbiztonságosabb lehetőségre, ha nem találunk jobb irányt
         return bestDirection != null ? bestDirection : validDirections.stream()
                 .max((d1, d2) -> Integer.compare(
                         calculateAccessibility(simulateMove(d1, gameState.snake)),
@@ -112,7 +112,7 @@ public class Agent extends SnakePlayer {
             }
         }
 
-        return regionSize; // Size of the reachable region from the snake's head
+        return regionSize; // A kígyó fejétől elérhető terület mérete
     }
 
 
@@ -142,7 +142,7 @@ public class Agent extends SnakePlayer {
             }
         }
 
-        return false; // Food is not reachable
+        return false; // Food nem elerheto
     }
 
     private LinkedList<Cell> simulateMove(Direction direction, LinkedList<Cell> snake) {
@@ -151,7 +151,7 @@ public class Agent extends SnakePlayer {
         simulatedSnake.addFirst(newHead);
 
         if (!newHead.equals(getFoodCell())) {
-            simulatedSnake.removeLast(); // Tail moves forward if no food is consumed
+            simulatedSnake.removeLast(); // A farok előremozdul, ha nem eszik etelt
         }
         return simulatedSnake;
     }
@@ -180,7 +180,7 @@ public class Agent extends SnakePlayer {
             }
         }
 
-        return accessibleCells; // Number of accessible cells from the current state
+        return accessibleCells; // Hozzáférhető cellák száma az aktuális állapotból
     }
 
     private LinkedList<Direction> getValidDirections(Cell head) {
@@ -193,7 +193,7 @@ public class Agent extends SnakePlayer {
         return directions;
     }
 
-    boolean wouldDie(Direction d, LinkedList<Cell> snake){
+    boolean wouldDie(Direction d, LinkedList<Cell> snake) {
         Cell tail = gameState.getTail();
         Cell head = snake.peekFirst();
         assert (head != null);
@@ -230,9 +230,9 @@ public class Agent extends SnakePlayer {
             Cell current = queue.poll();
             accessibleCells++;
 
-            // Check if the snake can access enough open cells to survive
+            // Ellenőrizzuk, hogy a kígyó elég nyitott cell-hez fér-e a túléléshez
             if (accessibleCells >= requiredCells) {
-                return true; // Early exit: enough cells are accessible
+                return true; // Korai kilépés: elegendő cella érhető el
             }
 
             for (Cell neighbor : current.neighbors()) {
@@ -252,7 +252,8 @@ public class Agent extends SnakePlayer {
 
     private Cell getFoodCell() {
         Cell food = null;
-        outer: for (int row = 0; row < gameState.board.length; row++) {
+        outer:
+        for (int row = 0; row < gameState.board.length; row++) {
             for (int column = 0; column < gameState.board[row].length; column++) {
                 if (gameState.board[row][column] == SnakeGame.FOOD) {
                     food = new Cell(row, column);
