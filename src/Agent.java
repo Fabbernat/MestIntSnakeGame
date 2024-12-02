@@ -55,6 +55,7 @@ public class Agent extends SnakePlayer {
 
             // A hozzáférhetőség és a furatméret kiszámítása
             int accessibilityScore = calculateAccessibility(simulatedSnake);
+
             int holeSize = calculateHoleSize(simulatedSnake);
 
 
@@ -62,40 +63,37 @@ public class Agent extends SnakePlayer {
             Cell newHead = new Cell(head.i + direction.i, head.j + direction.j);
             int distanceToFood = food != null ? newHead.distance(food) : Integer.MAX_VALUE;
 
-            int proximityWeight = foodReachable ? (150 - distanceToFood) : 0; // Súlynövelés az élelmiszer-közelség erőteljesebb előnyben részesítése érdekében.
+            int proximityWeight = foodReachable ? (200 - distanceToFood) : 0;  // Súlynövelés az élelmiszer-közelség erőteljesebb előnyben részesítése érdekében.
 
 // Kis lyukakba való belépés büntetése
             int holePenalty = (holeSize < gameState.snake.size())
-                    ? (300 + (gameState.snake.size() - holeSize) * 8) / (1 + gameState.snake.size() / 40)
+                    ? (250 + (gameState.snake.size() - holeSize) * 6) / (1 + gameState.snake.size() / 50)
                     : 0; // Csökkentett alapbüntetés és korrigált skálázási tényező a simább büntetés alkalmazás érdekében.
 
-            /*
-            int tailPenalty = !foodReachable && distanceToTail > 10
-                    ? (distanceToTail * 3) / 2 : 0;
-            */
-
             int moveScore = accessibilityScore + proximityWeight - holePenalty;
+
             if (!foodReachable) {
                 int distanceToTail = newHead.distance(gameState.snake.peekLast());
                 moveScore += distanceToTail * 5; // Encourage moving closer to the tail
             }
 
 
+
             // Pontozd a lépést
 
             if (holeSize < gameState.snake.size() / 2 && simulatedSnake.contains(food)) {
-                proximityWeight += 300; // Strongly prioritize constrained regions with food
+                proximityWeight += 350; // Strongly prioritize constrained regions with food
             }
 
             if (calculateAccessibility(gameState.snake) <= gameState.snake.size() + 2) {
-                moveScore += accessibilityScore * 3; // Heavily favor escape
+                moveScore += accessibilityScore * 4; // Heavily favor escape
             }
             // Válassza ki a legjobb pontszámot elérő irányt
             if (moveScore > bestScore) {
                 bestScore = moveScore;
                 bestDirection = direction;
             }
-            if (moveScore == bestScore && random.nextInt(10) < 1) { // 20% chance to pick alternative
+            if (moveScore == bestScore && random.nextInt(10) < 1) { // 0% esély h masik iranyba megy el
                 bestDirection = direction;
             }
         }
