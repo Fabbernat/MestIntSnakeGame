@@ -133,7 +133,7 @@ de a megvalósítás önálló kell legyen. A megoldást tartalmazó forráskód
 körülmények között ki kell elégítenie a következő követelményeket:
 
 * A megoldás nem állhat előre legyártott lépéssorozat visszajátszásából
-* A forráskódot ``Agent.java`` néven kell feltölteni
+* A forráskódot ``KDavid02Agent.java`` néven kell feltölteni
 * A feltöltött forráskódnak le kell fordulnia és hibamentesen le kell futnia
 * A feltöltött fájlt az ``iconv -f ascii -c`` paranccsal ASCII-vé konvertáljuk
   a fordítás előtt. Emiatt az ékezetes betűk és minden más nem-ascii karakter

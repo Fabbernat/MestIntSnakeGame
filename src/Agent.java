@@ -54,18 +54,22 @@ public class Agent extends SnakePlayer {
 
             // A hozzáférhetőség és a furatméret kiszámítása
             int accessibilityScore = calculateAccessibility(simulatedSnake);
-            int holeSize = calculateHoleSize(simulatedSnake);
+            int regionSize = calculateHoleSize(simulatedSnake);
 
 // Súly hozzáadása az élelmiszer közelsége miatt
             Cell newHead = new Cell(head.i + direction.i, head.j + direction.j);
             int distanceToFood = newHead.distance(food);
-            int proximityWeight = foodReachable ? (100 - distanceToFood) : 0;
+            int distanceToTail = newHead.distance(gameState.snake.peekLast());
+
+            int proximityWeight = (distanceToFood <= 2) ? (200 - distanceToFood * 50) : (foodReachable ? (100 - distanceToFood) : 0);
 
 // Kis lyukakba való belépés büntetése
-            int holePenalty = holeSize < gameState.snake.size() ? 500 + (gameState.snake.size() - holeSize) * 10 : 0;
+            int holePenalty = regionSize < gameState.snake.size() ? 500 + (gameState.snake.size() - regionSize) * 10 : 0;
+
+            int tailPenalty = distanceToTail > 15 ? distanceToTail * 2 : 0;
 
             // Pontozd a lépést
-            int moveScore = accessibilityScore + proximityWeight - holePenalty;
+            int moveScore = accessibilityScore + proximityWeight - holePenalty - tailPenalty;
 
             // Válassza ki a legjobb pontszámot elérő irányt
             if (moveScore > bestScore) {
@@ -90,6 +94,7 @@ public class Agent extends SnakePlayer {
      */
     private int calculateHoleSize(LinkedList<Cell> snake) {
         Cell head = snake.peekFirst();
+        Cell tail = snake.peekLast(); // Get the tail
         boolean[][] visited = new boolean[gameState.board.length][gameState.board[0].length];
         LinkedList<Cell> queue = new LinkedList<>();
         queue.add(head);
@@ -104,7 +109,7 @@ public class Agent extends SnakePlayer {
             for (Cell neighbor : current.neighbors()) {
                 if (gameState.isOnBoard(neighbor) &&
                         !visited[neighbor.i][neighbor.j] &&
-                        (gameState.getValueAt(neighbor) != SnakeGame.SNAKE || neighbor.equals(snake.peekLast())) &&
+                        (gameState.getValueAt(neighbor) != SnakeGame.SNAKE || neighbor.equals(tail)) && // Consider tail
                         !snake.contains(neighbor)) {
                     visited[neighbor.i][neighbor.j] = true;
                     queue.add(neighbor);
@@ -112,7 +117,7 @@ public class Agent extends SnakePlayer {
             }
         }
 
-        return regionSize; // A kígyó fejétől elérhető terület mérete
+        return regionSize;
     }
 
 

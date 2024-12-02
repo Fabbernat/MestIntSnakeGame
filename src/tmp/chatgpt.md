@@ -15,7 +15,7 @@
 |             #########   |
 |                         |
 \-------------------------/
-CURRENT: Agent SCORE: 4948.0 REM.TIME: 9437500000 ns
+CURRENT: KDavid02Agent SCORE: 4948.0 REM.TIME: 9437500000 ns
 ACTION: 0, 1 RIGHT
 ELAPSED TIME: 0 ns
 SCORE: 4947 HEAD: 8, 14 D: 0, 1 RIGHT L: 63
@@ -36,7 +36,7 @@ SCORE: 4947 HEAD: 8, 14 D: 0, 1 RIGHT L: 63
 |             #########   |
 |                         |
 \-------------------------/
-CURRENT: Agent SCORE: 4947.0 REM.TIME: 9437500000 ns
+CURRENT: KDavid02Agent SCORE: 4947.0 REM.TIME: 9437500000 ns
 ACTION: 0, 1 RIGHT
 ELAPSED TIME: 0 ns
 SCORE: 4946 HEAD: 8, 15 D: 0, 1 RIGHT L: 63
@@ -57,7 +57,7 @@ SCORE: 4946 HEAD: 8, 15 D: 0, 1 RIGHT L: 63
 |             #########   |
 |                         |
 \-------------------------/
-CURRENT: Agent SCORE: 4946.0 REM.TIME: 9437500000 ns
+CURRENT: KDavid02Agent SCORE: 4946.0 REM.TIME: 9437500000 ns
 ACTION: 1, 0 DOWN
 ELAPSED TIME: 0 ns
 SCORE: 4945 HEAD: 9, 15 D: 1, 0 DOWN L: 63
@@ -78,7 +78,7 @@ SCORE: 4945 HEAD: 9, 15 D: 1, 0 DOWN L: 63
 |             #########   |
 |                         |
 \-------------------------/
-CURRENT: Agent SCORE: 4945.0 REM.TIME: 9437500000 ns
+CURRENT: KDavid02Agent SCORE: 4945.0 REM.TIME: 9437500000 ns
 ACTION: 1, 0 DOWN
 ELAPSED TIME: 0 ns
 SCORE: 4944 HEAD: 10, 15 D: 1, 0 DOWN L: 63
@@ -99,7 +99,7 @@ SCORE: 4944 HEAD: 10, 15 D: 1, 0 DOWN L: 63
 |             #########   |
 |                         |
 \-------------------------/
-CURRENT: Agent SCORE: 4944.0 REM.TIME: 9437500000 ns
+CURRENT: KDavid02Agent SCORE: 4944.0 REM.TIME: 9437500000 ns
 ACTION: 1, 0 DOWN
 ELAPSED TIME: 0 ns
 SCORE: 4943 HEAD: 11, 15 D: 1, 0 DOWN L: 63
@@ -120,7 +120,7 @@ SCORE: 4943 HEAD: 11, 15 D: 1, 0 DOWN L: 63
 |             #########   |
 |                         |
 \-------------------------/
-CURRENT: Agent SCORE: 4943.0 REM.TIME: 9437500000 ns
+CURRENT: KDavid02Agent SCORE: 4943.0 REM.TIME: 9437500000 ns
 ACTION: 1, 0 DOWN
 ELAPSED TIME: 0 ns
 SCORE: 5042 HEAD: 12, 15 D: 1, 0 DOWN L: 64
@@ -141,7 +141,7 @@ SCORE: 5042 HEAD: 12, 15 D: 1, 0 DOWN L: 64
 |             #########   |
 |              O          |
 \-------------------------/
-CURRENT: Agent SCORE: 5042.0 REM.TIME: 9437500000 ns
+CURRENT: KDavid02Agent SCORE: 5042.0 REM.TIME: 9437500000 ns
 ACTION: 1, 0 DOWN
 ELAPSED TIME: 0 ns
 SCORE: 5042 HEAD: 12, 15 D: 1, 0 DOWN L: 64
@@ -162,6 +162,6 @@ SCORE: 5042 HEAD: 12, 15 D: 1, 0 DOWN L: 64
 |             #########   |
 |              O          |
 \-------------------------/
-0 Agent 5042.0 9437500000
+0 KDavid02Agent 5042.0 9437500000
 
 Process finished with exit code 0

@@ -9,14 +9,14 @@ import game.snake.utils.SnakeGameState;
 import java.util.*;
 
 /**
- * Az Agent osztaly a kigyot vezerlo agens, amely a jatek allapota alapjan
+ * Az KDavid02Agent osztaly a kigyot vezerlo agens, amely a jatek allapota alapjan
  * donti el a kovetkezo lepes iranyat. Az agens celja az etel felvetele es a falak,
  * valamint a sajat teste elkerulese.
  */
 public class AgentDevBranch extends SnakePlayer {
 
     /**
-     * Konstruktor, amely inicializalja az Agent objektumot a megadott jatekkal.
+     * Konstruktor, amely inicializalja az KDavid02Agent objektumot a megadott jatekkal.
      *
      * @param gameState Az aktualis jatekter allapota.
      * @param color     A kigyo szine.
