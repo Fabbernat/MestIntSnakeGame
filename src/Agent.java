@@ -61,7 +61,7 @@ public class Agent extends SnakePlayer {
             int distanceToFood = newHead.distance(food);
             int distanceToTail = newHead.distance(gameState.snake.peekLast());
 
-            int proximityWeight = (distanceToFood <= 2) ? (200 - distanceToFood * 50) : (foodReachable ? (100 - distanceToFood) : 0);
+            int proximityWeight = foodReachable ? (100 - distanceToFood) : 0;
 
 // Kis lyukakba való belépés büntetése
             int holePenalty = regionSize < gameState.snake.size() ? 500 + (gameState.snake.size() - regionSize) * 10 : 0;
