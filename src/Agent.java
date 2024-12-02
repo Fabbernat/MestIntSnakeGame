@@ -55,20 +55,24 @@ public class Agent extends SnakePlayer {
 
             // A hozzáférhetőség és a furatméret kiszámítása
             int accessibilityScore = calculateAccessibility(simulatedSnake);
-
             int holeSize = calculateHoleSize(simulatedSnake);
 
 
 // Súly hozzáadása az élelmiszer közelsége miatt
             Cell newHead = new Cell(head.i + direction.i, head.j + direction.j);
-            int distanceToFood = newHead.distance(food);
+            int distanceToFood = food != null ? newHead.distance(food) : Integer.MAX_VALUE;
 
-            int proximityWeight = foodReachable ? (100 - distanceToFood) : 0;
+            int proximityWeight = foodReachable ? (150 - distanceToFood) : 0; // Súlynövelés az élelmiszer-közelség erőteljesebb előnyben részesítése érdekében.
 
 // Kis lyukakba való belépés büntetése
             int holePenalty = (holeSize < gameState.snake.size())
-                    ? (500 + (gameState.snake.size() - holeSize) * 10) / (1 + gameState.snake.size() / 50)
-                    : 0;
+                    ? (300 + (gameState.snake.size() - holeSize) * 8) / (1 + gameState.snake.size() / 40)
+                    : 0; // Csökkentett alapbüntetés és korrigált skálázási tényező a simább büntetés alkalmazás érdekében.
+
+            /*
+            int tailPenalty = !foodReachable && distanceToTail > 10
+                    ? (distanceToTail * 3) / 2 : 0;
+            */
 
             int moveScore = accessibilityScore + proximityWeight - holePenalty;
             if (!foodReachable) {
@@ -77,15 +81,14 @@ public class Agent extends SnakePlayer {
             }
 
 
-
             // Pontozd a lépést
 
             if (holeSize < gameState.snake.size() / 2 && simulatedSnake.contains(food)) {
-                proximityWeight += 200; // Strongly prioritize constrained regions with food
+                proximityWeight += 300; // Strongly prioritize constrained regions with food
             }
 
             if (calculateAccessibility(gameState.snake) <= gameState.snake.size() + 2) {
-                moveScore += accessibilityScore * 2; // Heavily favor escape
+                moveScore += accessibilityScore * 3; // Heavily favor escape
             }
             // Válassza ki a legjobb pontszámot elérő irányt
             if (moveScore > bestScore) {
