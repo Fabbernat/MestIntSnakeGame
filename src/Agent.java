@@ -62,12 +62,13 @@ public class Agent extends SnakePlayer {
             Cell newHead = new Cell(head.i + direction.i, head.j + direction.j);
             int distanceToFood = food != null ? newHead.distance(food) : Integer.MAX_VALUE;
 
-            int proximityWeight = foodReachable ? (150 - distanceToFood) : 0; // Súlynövelés az élelmiszer-közelség erőteljesebb előnyben részesítése érdekében.
+            int proximityWeight = foodReachable ? (175 - distanceToFood) : 0; // Súlynövelés az élelmiszer-közelség erőteljesebb előnyben részesítése érdekében.
 
 // Kis lyukakba való belépés büntetése
             int holePenalty = (holeSize < gameState.snake.size())
-                    ? (300 + (gameState.snake.size() - holeSize) * 8) / (1 + gameState.snake.size() / 40)
-                    : 0; // Csökkentett alapbüntetés és korrigált skálázási tényező a simább büntetés alkalmazás érdekében.
+                    ? (300 + (gameState.snake.size() - holeSize) * 6) / Math.max(2, gameState.snake.size() / 50)
+                    : 0;
+            // Csökkentett alapbüntetés és korrigált skálázási tényező a simább büntetés alkalmazás érdekében.
 
             /*
             int tailPenalty = !foodReachable && distanceToTail > 10
@@ -75,27 +76,26 @@ public class Agent extends SnakePlayer {
             */
 
             int moveScore = accessibilityScore + proximityWeight - holePenalty;
+
+            int regionSplitPenalty = calculateRegionSplitPenalty(simulatedSnake, food);
+//            moveScore -= regionSplitPenalty * (gameState.snake.size() / 160); // Increase penalty for longer snakes
+
             if (!foodReachable) {
                 int distanceToTail = newHead.distance(gameState.snake.peekLast());
-                moveScore += distanceToTail * 5; // Encourage moving closer to the tail
+                moveScore += distanceToTail * 5; // Encourage moving toward the tail
             }
 
 
             // Pontozd a lépést
-
-            if (holeSize < gameState.snake.size() / 2 && simulatedSnake.contains(food)) {
-                proximityWeight += 300; // Strongly prioritize constrained regions with food
-            }
-
             if (calculateAccessibility(gameState.snake) <= gameState.snake.size() + 2) {
-                moveScore += accessibilityScore * 3; // Heavily favor escape
+                moveScore += accessibilityScore * 5; // Heavily favor escape
             }
             // Válassza ki a legjobb pontszámot elérő irányt
             if (moveScore > bestScore) {
                 bestScore = moveScore;
                 bestDirection = direction;
             }
-            if (moveScore == bestScore && random.nextInt(10) < 1) { // 20% chance to pick alternative
+            if (moveScore == bestScore && random.nextInt(10) < 1) { // x % esely h mas fele menjen a kigyo
                 bestDirection = direction;
             }
         }
@@ -107,6 +107,51 @@ public class Agent extends SnakePlayer {
                         calculateAccessibility(simulateMove(d2, gameState.snake))
                 )).orElse(gameState.direction);
     }
+
+    private int calculateRegionSplitPenalty(LinkedList<Cell> simulatedSnake, Cell food) {
+        boolean[][] visited = new boolean[gameState.board.length][gameState.board[0].length];
+        LinkedList<Cell> queue = new LinkedList<>();
+        int largestRegionSize = 0;
+        int foodRegionSize = 0;
+
+        for (int i = 0; i < gameState.board.length; i++) {
+            for (int j = 0; j < gameState.board[0].length; j++) {
+                if (!visited[i][j] && gameState.getValueAt(new Cell(i, j)) != SnakeGame.SNAKE && !simulatedSnake.contains(new Cell(i, j))) {
+                    int regionSize = exploreRegion(i, j, visited);
+                    if (regionSize > largestRegionSize) {
+                        largestRegionSize = regionSize;
+                    }
+                    if (new Cell(i, j).equals(food)) {
+                        foodRegionSize = regionSize;
+                    }
+                }
+            }
+        }
+
+        // Penalize if food is in a smaller disconnected region
+        return foodRegionSize < simulatedSnake.size() ? (simulatedSnake.size() - foodRegionSize) * 10 : 0;
+    }
+
+    private int exploreRegion(int i, int j, boolean[][] visited) {
+        LinkedList<Cell> queue = new LinkedList<>();
+        queue.add(new Cell(i, j));
+        visited[i][j] = true;
+
+        int regionSize = 0;
+        while (!queue.isEmpty()) {
+            Cell current = queue.poll();
+            regionSize++;
+
+            for (Cell neighbor : current.neighbors()) {
+                if (gameState.isOnBoard(neighbor) && !visited[neighbor.i][neighbor.j] && gameState.getValueAt(neighbor) != SnakeGame.SNAKE) {
+                    visited[neighbor.i][neighbor.j] = true;
+                    queue.add(neighbor);
+                }
+            }
+        }
+        return regionSize;
+    }
+
 
     /**
      * Calculates the size of the region the snake's head moves into.
