@@ -52,28 +52,47 @@ public class Agent extends SnakePlayer {
             // Ellenőrizze, hogy az étel elérhető-e a költözés után
             boolean foodReachable = isFoodReachable(simulatedSnake, food);
 
+
             // A hozzáférhetőség és a furatméret kiszámítása
             int accessibilityScore = calculateAccessibility(simulatedSnake);
-            int regionSize = calculateHoleSize(simulatedSnake);
+
+            int holeSize = calculateHoleSize(simulatedSnake);
+
 
 // Súly hozzáadása az élelmiszer közelsége miatt
             Cell newHead = new Cell(head.i + direction.i, head.j + direction.j);
             int distanceToFood = newHead.distance(food);
-            int distanceToTail = newHead.distance(gameState.snake.peekLast());
 
             int proximityWeight = foodReachable ? (100 - distanceToFood) : 0;
 
 // Kis lyukakba való belépés büntetése
-            int holePenalty = regionSize < gameState.snake.size() ? 500 + (gameState.snake.size() - regionSize) * 10 : 0;
+            int holePenalty = (holeSize < gameState.snake.size())
+                    ? (500 + (gameState.snake.size() - holeSize) * 10) / (1 + gameState.snake.size() / 50)
+                    : 0;
 
-            int tailPenalty = distanceToTail > 15 ? distanceToTail * 2 : 0;
+            int moveScore = accessibilityScore + proximityWeight - holePenalty;
+            if (!foodReachable) {
+                int distanceToTail = newHead.distance(gameState.snake.peekLast());
+                moveScore += distanceToTail * 5; // Encourage moving closer to the tail
+            }
+
+
 
             // Pontozd a lépést
-            int moveScore = accessibilityScore + proximityWeight - holePenalty - tailPenalty;
 
+            if (holeSize < gameState.snake.size() / 2 && simulatedSnake.contains(food)) {
+                proximityWeight += 200; // Strongly prioritize constrained regions with food
+            }
+
+            if (calculateAccessibility(gameState.snake) <= gameState.snake.size() + 2) {
+                moveScore += accessibilityScore * 2; // Heavily favor escape
+            }
             // Válassza ki a legjobb pontszámot elérő irányt
             if (moveScore > bestScore) {
                 bestScore = moveScore;
+                bestDirection = direction;
+            }
+            if (moveScore == bestScore && random.nextInt(10) < 1) { // 20% chance to pick alternative
                 bestDirection = direction;
             }
         }
